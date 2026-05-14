@@ -104,7 +104,7 @@ def generate_pdf(records, title):
     return buf.getvalue()
 
 # --- АСОСИЙ ЛОГИКА ---
-menu = st.sidebar.selectbox("Ролингизни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи", "Administrator"])
+menu = st.sidebar.selectbox("Ролингизни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи ва ходим", "Administrator"])
 
 if 'access' not in st.session_state:
     st.session_state.access = True
