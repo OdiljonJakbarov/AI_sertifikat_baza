@@ -27,17 +27,13 @@ else:
 def init_db():
     conn = sqlite3.connect('university_ai.db', check_same_thread=False)
     c = conn.cursor()
-    # Асосий жадвални яратиш
     c.execute('''CREATE TABLE IF NOT EXISTS data 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT, faculty TEXT, 
                   dept_group TEXT, fio TEXT, cert_link TEXT)''')
     
-    # ЭСКИ БАЗАНИ АВТОМАТИК ЯНГИЛАШ (Хатоликни олдини олиш учун)
     try:
-        # cert_link устуни борлигини текшириб кўрамиз
         c.execute("SELECT cert_link FROM data LIMIT 1")
     except sqlite3.OperationalError:
-        # Агар устун бўлмаса (эски база бўлса), уни қўшамиз
         try:
             c.execute("ALTER TABLE data ADD COLUMN cert_link TEXT")
             conn.commit()
@@ -46,7 +42,6 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
-    # Факультетлар рўйхати (ИТ олиб ташланган)
     default_facs = ["Энергетика", "Машинасозлик", "Иқтисодиёт", "Қурилиш", "Транспорт", "Биотехнология", "Енгил саноат", "Табиий фанлар"]
     for f in default_facs:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (f,))
@@ -82,7 +77,6 @@ def generate_pdf(records, title):
     table_data = [["FIO", "Гуруҳ/Кафедра", "Факультет", "Сертификат ҳаволаси"]]
     
     for row in records:
-        # Фақат керакли устунларни оламиз
         fio, group, faculty, link = row
         table_data.append([fio, group, faculty, link if link else "Йўқ"])
     
@@ -147,22 +141,42 @@ if menu == "Administrator":
                 st.info("Маълумот йўқ.")
 
         with tab3:
-            st.subheader("Факультетлар")
-            new_f = st.text_input("Янги факультет номи:")
-            if st.button("Қўшиш"):
-                if new_f:
-                    c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (new_f,))
-                    conn.commit()
-                    st.success("Қўшилди!")
-                    st.rerun()
+            st.subheader("Факультетларни бошқариш")
             
-            facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
-            del_fac = st.selectbox("Ўчириш:", facs_list)
-            if st.button("Ўчириш"):
-                c.execute("DELETE FROM faculties WHERE name = ?", (del_fac,))
-                conn.commit()
-                st.warning(f"{del_fac} олиб ташланди.")
-                st.rerun()
+            # 1. Қўшиш
+            with st.expander("➕ Янги факультет қўшиш"):
+                new_f = st.text_input("Номини ёзинг:")
+                if st.button("Сақлаш"):
+                    if new_f:
+                        c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (new_f,))
+                        conn.commit()
+                        st.success("Қўшилди!")
+                        st.rerun()
+
+            # 2. Таҳрирлаш (Сиз сўраган янги қисм)
+            with st.expander("✏️ Факультет номини ўзгартириш"):
+                facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
+                old_name = st.selectbox("Қайси факультетни ўзгартирамиз?", facs_list)
+                new_name = st.text_input("Янги номни киритинг:", value=old_name)
+                if st.button("Номни янгилаш"):
+                    if new_name and new_name != old_name:
+                        # Факультетлар жадвалида янгилаш
+                        c.execute("UPDATE faculties SET name = ? WHERE name = ?", (new_name, old_name))
+                        # Асосий маълумотлар базасидаги (data) ёзувларни ҳам янгилаш
+                        c.execute("UPDATE data SET faculty = ? WHERE faculty = ?", (new_name, old_name))
+                        conn.commit()
+                        st.success(f"{old_name} -> {new_name} га ўзгарди!")
+                        st.rerun()
+
+            # 3. Ўчириш
+            with st.expander("🗑 Факультетни ўчириш"):
+                facs_list_del = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
+                del_fac = st.selectbox("Ўчириш учун танланг:", facs_list_del, key="del_box")
+                if st.button("Бутунлай ўчириш"):
+                    c.execute("DELETE FROM faculties WHERE name = ?", (del_fac,))
+                    conn.commit()
+                    st.warning(f"{del_fac} олиб ташланди.")
+                    st.rerun()
     else:
         st.warning("Парол киритилмаган.")
 
