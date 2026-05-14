@@ -40,7 +40,7 @@ def init_db():
         
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
-    default_facs = ["ИТ", "Энергетика", "Машинасозлик", "Иқтисодиёт", "Қурилиш", "Транспорт", "Биотехнология", "Енгил саноат", "Табиий фанлар"]
+    default_facs = ["Муҳандислик ахборот технологиялари", "Энергетика", "Машинасозлик", "Иқтисодиёт", "Қурилиш", "Транспорт", "Биотехнология", "Енгил саноат", "Табиий фанлар"]
     for f in default_facs:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (f,))
     conn.commit()
