@@ -16,7 +16,7 @@ import os
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide")
 
 # --- ШРИФТ СОЗЛАМАЛАРИ ---
-font_path = "C:/Windows/Fonts/arial.ttf" 
+font_path = "font_path = "arial.ttf"" 
 if os.path.exists(font_path):
     pdfmetrics.registerFont(TTFont('ArialCustom', font_path))
     FONT_NAME = 'ArialCustom'
