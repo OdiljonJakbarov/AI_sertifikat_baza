@@ -27,13 +27,16 @@ else:
 def init_db():
     conn = sqlite3.connect('university_ai.db', check_same_thread=False)
     c = conn.cursor()
+    # Jadvalni yaratish
     c.execute('''CREATE TABLE IF NOT EXISTS data 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT, faculty TEXT, 
                   dept_group TEXT, fio TEXT, cert_link TEXT)''')
     
-    try:
-        c.execute("SELECT cert_link FROM data LIMIT 1")
-    except sqlite3.OperationalError:
+    # BAZANI TEKSHIRISH VA YANGILASH (Xatolikni oldini olish uchun)
+    c.execute("PRAGMA table_info(data)")
+    columns = [column[1] for column in c.fetchall()]
+    
+    if 'cert_link' not in columns:
         try:
             c.execute("ALTER TABLE data ADD COLUMN cert_link TEXT")
             conn.commit()
@@ -42,6 +45,7 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
+    # Fakultetlar ro'yxati
     default_facs = ["Energetika", "Mashinasozlik", "Iqtisodiyot", "Qurilish", "Transport", "Biotexnologiya", "Yengil sanoat", "Tabiiy fanlar"]
     for f in default_facs:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (f,))
