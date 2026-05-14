@@ -15,7 +15,7 @@ import os
 # --- САҲИФА СОЗЛАМАЛАРИ ---
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide")
 
-# --- ШРИФТ СОЗЛАМАЛАРИ (PDF учун) ---
+# --- ШРИФТ СОЗЛАМАЛАРИ ---
 font_path = "arial.ttf" 
 if os.path.exists(font_path):
     pdfmetrics.registerFont(TTFont('ArialCustom', font_path))
@@ -23,15 +23,30 @@ if os.path.exists(font_path):
 else:
     FONT_NAME = 'Helvetica'
 
-# --- МАЪЛУМОТЛАР БАЗАСИ (SQLite - Маҳаллий нусха сифатида) ---
+# --- МАЪЛУМОТЛАР БАЗАСИНИ ЯНГИЛАШ ---
 def init_db():
     conn = sqlite3.connect('university_ai.db', check_same_thread=False)
     c = conn.cursor()
+    # Асосий жадвални яратиш
     c.execute('''CREATE TABLE IF NOT EXISTS data 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT, faculty TEXT, 
                   dept_group TEXT, fio TEXT, cert_link TEXT)''')
+    
+    # ЭСКИ БАЗАНИ АВТОМАТИК ЯНГИЛАШ (Хатоликни олдини олиш учун)
+    try:
+        # cert_link устуни борлигини текшириб кўрамиз
+        c.execute("SELECT cert_link FROM data LIMIT 1")
+    except sqlite3.OperationalError:
+        # Агар устун бўлмаса (эски база бўлса), уни қўшамиз
+        try:
+            c.execute("ALTER TABLE data ADD COLUMN cert_link TEXT")
+            conn.commit()
+        except:
+            pass
+
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
+    # Факультетлар рўйхати (ИТ олиб ташланган)
     default_facs = ["Энергетика", "Машинасозлик", "Иқтисодиёт", "Қурилиш", "Транспорт", "Биотехнология", "Енгил саноат", "Табиий фанлар"]
     for f in default_facs:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (f,))
@@ -41,15 +56,19 @@ def init_db():
 conn = init_db()
 c = conn.cursor()
 
-# --- ДИЗАЙН ---
+# --- ДИЗАЙН ВА ФУТЕР ---
 st.markdown("""
     <style>
-    .footer { position: fixed; right: 20px; bottom: 20px; color: #888; font-weight: bold; z-index: 1000; background: rgba(255,255,255,0.8); padding: 5px 15px; border-radius: 8px; border: 1px solid #ddd; }
+    .footer { 
+        position: fixed; right: 20px; bottom: 20px; color: #888; 
+        font-weight: bold; z-index: 1000; background: rgba(255,255,255,0.8); 
+        padding: 5px 15px; border-radius: 8px; border: 1px solid #ddd;
+    }
     </style>
     <div class="footer">Created by Jakbarov Odiljon</div>
     """, unsafe_allow_html=True)
 
-# --- PDF ГЕНЕРАЦИЯ (ҲАВОЛАЛАР БИЛАН) ---
+# --- PDF ГЕНЕРАЦИЯ ---
 def generate_pdf(records, title):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), topMargin=20, bottomMargin=20)
@@ -60,10 +79,10 @@ def generate_pdf(records, title):
     title_style.fontName = FONT_NAME
     elements.append(Paragraph(f"Ҳисобот: {title}", title_style))
     
-    # Жадвал боши
     table_data = [["FIO", "Гуруҳ/Кафедра", "Факультет", "Сертификат ҳаволаси"]]
     
     for row in records:
+        # Фақат керакли устунларни оламиз
         fio, group, faculty, link = row
         table_data.append([fio, group, faculty, link if link else "Йўқ"])
     
@@ -75,32 +94,32 @@ def generate_pdf(records, title):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('FONTNAME', (0, 0), (-1, -1), FONT_NAME),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
     ]))
     elements.append(t)
     doc.build(elements)
     return buf.getvalue()
 
-# --- АСОСИЙ МЕНЮ ---
-menu = st.sidebar.selectbox("Ролингизни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи ва ходим", "Administrator"])
+# --- МЕНЮ ---
+menu = st.sidebar.selectbox("Бўлимни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи ва ходим", "Administrator"])
 
 if 'access' not in st.session_state:
     st.session_state.access = True
 
 if menu == "Administrator":
-    pwd = st.sidebar.text_input("Паролни киритинг:", type="password")
+    pwd = st.sidebar.text_input("Парол:", type="password")
     if pwd == "Jo12100105+":
         st.header("🛠 Администратор панели")
-        st.session_state.access = st.toggle("Тизимга киришни очиш/ёпиш", value=st.session_state.access)
+        st.session_state.access = st.toggle("Рўйхатга олишни ёпиш/очиш", value=st.session_state.access)
         
-        tab1, tab2, tab3 = st.tabs(["📊 Статистика", "📋 PDF Ҳисобот", "⚙ Созламалар"])
+        tab1, tab2, tab3 = st.tabs(["📊 Статистика", "📋 Ҳисобот (PDF)", "⚙ Созламалар"])
         
         with tab1:
             data_df = pd.read_sql("SELECT role, faculty, dept_group FROM data", conn)
             if not data_df.empty:
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.subheader("Ўқитувчи ва ходимлар")
+                    st.subheader("Ходимлар")
                     t_data = data_df[data_df['role'] == 'Ўқитувчи ва ходим']['faculty'].value_counts()
                     if not t_data.empty:
                         fig, ax = plt.subplots()
@@ -119,17 +138,17 @@ if menu == "Administrator":
             c.execute(f"SELECT fio, dept_group, faculty, cert_link FROM data WHERE role='{role_f}'")
             recs = c.fetchall()
             if recs:
-                if st.button(f"Ҳисоботни PDF юклаб олиш"):
+                if st.button("PDF файлни тайёрлаш"):
                     pdf_bytes = generate_pdf(recs, role_f)
-                    st.download_button("Файлни сақлаш", pdf_bytes, f"hisobot_{role_f}.pdf", "application/pdf")
-                df_v = pd.DataFrame(recs, columns=["FIO", "Гуруҳ/Кафедра", "Факультет", "Ҳавола (Link)"])
-                st.dataframe(df_v, use_container_width=True)
+                    st.download_button("Юклаб олиш", pdf_bytes, f"{role_f}_hisobot.pdf", "application/pdf")
+                df_view = pd.DataFrame(recs, columns=["FIO", "Гуруҳ/Кафедра", "Факультет", "Ҳавола"])
+                st.dataframe(df_view, use_container_width=True)
             else:
-                st.info("Маълумот мавжуд эмас.")
+                st.info("Маълумот йўқ.")
 
         with tab3:
-            st.subheader("Факультетларни бошқариш")
-            new_f = st.text_input("Янги факультет:")
+            st.subheader("Факультетлар")
+            new_f = st.text_input("Янги факультет номи:")
             if st.button("Қўшиш"):
                 if new_f:
                     c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (new_f,))
@@ -138,37 +157,35 @@ if menu == "Administrator":
                     st.rerun()
             
             facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
-            delete_fac = st.selectbox("Ўчириш учун танланг:", facs_list)
+            del_fac = st.selectbox("Ўчириш:", facs_list)
             if st.button("Ўчириш"):
-                c.execute("DELETE FROM faculties WHERE name = ?", (delete_fac,))
+                c.execute("DELETE FROM faculties WHERE name = ?", (del_fac,))
                 conn.commit()
-                st.warning(f"{delete_fac} ўчирилди!")
+                st.warning(f"{del_fac} олиб ташланди.")
                 st.rerun()
     else:
-        st.warning("Админ паролини киритинг.")
+        st.warning("Парол киритилмаган.")
 
 elif menu in ["Талаба", "Ўқитувчи ва ходим"]:
     if st.session_state.access:
-        st.header(f"{menu} анкетаси")
+        st.header(f"{menu} учун анкета")
         facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
-        with st.form("user_form"):
+        with st.form("main_form"):
             f_fio = st.text_input("Ф.И.О (Тўлиқ):")
             f_fac = st.selectbox("Факультет:", facs)
             f_group = st.text_input("Гуруҳ ёки Кафедра:")
-            # Сиз сўраган ўзгартириш: Расм ўрнига ҳавола
-            f_link = st.text_input("Сертификат ҳаволаси (Link):", placeholder="https://example.com/certificate.jpg")
+            f_link = st.text_input("Сертификат ҳаволаси (Link):")
             
-            if st.form_submit_button("Маълумотни юбориш"):
+            if st.form_submit_button("Сақлаш"):
                 if f_fio and f_link:
                     c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)",
                               (menu, f_fac, f_group, f_fio, f_link))
                     conn.commit()
-                    st.success("Раҳмат! Сизнинг ҳаволангиз муваффақиятли қабул қилинди.")
+                    st.success("Маълумот қабул қилинди!")
                 else:
-                    st.error("Ф.И.О ва Сертификат ҳаволаси мажбурий!")
+                    st.error("Маълумотларни тўлиқ киритинг!")
     else:
-        st.error("Ҳозирда тизим орқали маълумот қабул қилиш тўхтатилган.")
-
+        st.error("Тизим ҳозирда ёпиқ.")
 else:
     st.title("Университет СИ курси мониторинги")
-    st.info("Чап менюдан керакли бўлимни танланг.")
+    st.info("Давом этиш учун чап томондан ролни танланг.")
