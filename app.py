@@ -16,14 +16,12 @@ import os
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide")
 
 # --- ШРИФТ СОЗЛАМАЛАРИ ---
-# Онлайн (GitHub/Streamlit Cloud) учун шрифт йўли
 font_path = "arial.ttf" 
 
 if os.path.exists(font_path):
     pdfmetrics.registerFont(TTFont('ArialCustom', font_path))
     FONT_NAME = 'ArialCustom'
 else:
-    # Агар шрифт топилмаса стандартга қайтади
     FONT_NAME = 'Helvetica'
 
 # --- МАЪЛУМОТЛАР БАЗАСИ ---
@@ -34,7 +32,6 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT, faculty TEXT, 
                   dept_group TEXT, fio TEXT, position TEXT, cert_name TEXT, cert_data BLOB)''')
     
-    # cert_data устунини текшириш (агар эски база бўлса)
     try:
         c.execute("ALTER TABLE data ADD COLUMN cert_data BLOB")
     except sqlite3.OperationalError:
@@ -42,7 +39,6 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
-    # "ИТ" олиб ташланган бошланғич рўйхат
     default_facs = ["Энергетика", "Машинасозлик", "Иқтисодиёт", "Қурилиш", "Транспорт", "Биотехнология", "Енгил саноат", "Табиий фанлар"]
     for f in default_facs:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (f,))
@@ -52,7 +48,7 @@ def init_db():
 conn = init_db()
 c = conn.cursor()
 
-# --- ДИЗАЙН ВА ФУТЕР ---
+# --- ДИЗАЙН ---
 st.markdown("""
     <style>
     .footer { 
@@ -64,7 +60,7 @@ st.markdown("""
     <div class="footer">Created by Jakbarov Odiljon</div>
     """, unsafe_allow_html=True)
 
-# --- PDF ГЕНЕРАЦИЯ (3x4 РАСМ БИЛАН) ---
+# --- PDF ГЕНЕРАЦИЯ ---
 def generate_pdf(records, title):
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), topMargin=20, bottomMargin=20)
@@ -103,7 +99,8 @@ def generate_pdf(records, title):
     doc.build(elements)
     return buf.getvalue()
 
-# --- АСОСИЙ ЛОГИКА ---
+# --- АСОСИЙ МЕНЮ ---
+# Сиз сўраган ўзгартириш: "Ўқитувчи ва ходим" қўшилди
 menu = st.sidebar.selectbox("Ролингизни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи ва ходим", "Administrator"])
 
 if 'access' not in st.session_state:
@@ -122,8 +119,8 @@ if menu == "Administrator":
             if not data_df.empty:
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.subheader("Ўқитувчилар")
-                    t_data = data_df[data_df['role'] == 'Ўқитувчи']['faculty'].value_counts()
+                    st.subheader("Ўқитувчи ва ходимлар")
+                    t_data = data_df[data_df['role'] == 'Ўқитувчи ва ходим']['faculty'].value_counts()
                     if not t_data.empty:
                         fig, ax = plt.subplots()
                         t_data.plot(kind='bar', color='#1E3A8A', ax=ax)
@@ -137,21 +134,20 @@ if menu == "Administrator":
                         st.pyplot(fig2)
         
         with tab2:
-            role_f = st.radio("Кимлар бўйича:", ["Ўқитувчи", "Талаба"], horizontal=True)
+            role_f = st.radio("Кимлар бўйича:", ["Ўқитувчи ва ходим", "Талаба"], horizontal=True)
             c.execute(f"SELECT fio, dept_group, faculty, cert_data FROM data WHERE role='{role_f}'")
             recs = c.fetchall()
             if recs:
-                if st.button(f"{role_f}лар ҳисоботини PDF юклаш"):
+                if st.button(f"Ҳисоботни PDF юклаш"):
                     pdf_bytes = generate_pdf(recs, role_f)
                     st.download_button("Файлни сақлаш", pdf_bytes, f"hisobot_{role_f}.pdf", "application/pdf")
-                df_v = pd.DataFrame(recs, columns=["FIO", "Гуруҳ", "Факультет", "Blob"]).drop(columns=["Blob"])
+                df_v = pd.DataFrame(recs, columns=["FIO", "Гуруҳ/Кафедра", "Факультет", "Blob"]).drop(columns=["Blob"])
                 st.dataframe(df_v, use_container_width=True)
             else:
                 st.info("Маълумот мавжуд эмас.")
 
         with tab3:
             st.subheader("Факультетларни бошқариш")
-            # Факультет қўшиш
             new_f = st.text_input("Янги факультет номи:")
             if st.button("Қўшиш"):
                 if new_f:
@@ -161,8 +157,6 @@ if menu == "Administrator":
                     st.rerun()
             
             st.divider()
-            
-            # Факультетни ўчириш
             facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
             delete_fac = st.selectbox("Ўчириш учун факультетни танланг:", facs_list)
             if st.button("Танланган факультетни ўчириш"):
@@ -170,11 +164,10 @@ if menu == "Administrator":
                 conn.commit()
                 st.warning(f"{delete_fac} ўчирилди!")
                 st.rerun()
-
     else:
         st.warning("Админ паролини киритинг.")
 
-elif menu in ["Талаба", "Ўқитувчи"]:
+elif menu in ["Талаба", "Ўқитувчи ва ходим"]:
     if st.session_state.access:
         st.header(f"{menu} анкетаси")
         facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
