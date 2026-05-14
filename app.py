@@ -94,6 +94,13 @@ def generate_pdf(records, title):
     doc.build(elements)
     return buf.getvalue()
 
+# --- EXCEL ГЕНЕРАЦИЯ (Янги функция) ---
+def generate_excel(df, title):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=title[:31])
+    return output.getvalue()
+
 # --- МЕНЮ ---
 menu = st.sidebar.selectbox("Бўлимни танланг:", ["Бош саҳифа", "Талаба", "Ўқитувчи ва ходим", "Administrator"])
 
@@ -106,7 +113,7 @@ if menu == "Administrator":
         st.header("🛠 Администратор панели")
         st.session_state.access = st.toggle("Рўйхатга олишни ёпиш/очиш", value=st.session_state.access)
         
-        tab1, tab2, tab3 = st.tabs(["📊 Статистика", "📋 Ҳисобот (PDF)", "⚙ Созламалар"])
+        tab1, tab2, tab3 = st.tabs(["📊 Статистика", "📋 Ҳисобот юклаш", "⚙ Созламалар"])
         
         with tab1:
             data_df = pd.read_sql("SELECT role, faculty, dept_group FROM data", conn)
@@ -131,11 +138,23 @@ if menu == "Administrator":
             role_f = st.radio("Кимлар бўйича:", ["Ўқитувчи ва ходим", "Талаба"], horizontal=True)
             c.execute(f"SELECT fio, dept_group, faculty, cert_link FROM data WHERE role='{role_f}'")
             recs = c.fetchall()
+            
             if recs:
-                if st.button("PDF файлни тайёрлаш"):
-                    pdf_bytes = generate_pdf(recs, role_f)
-                    st.download_button("Юклаб олиш", pdf_bytes, f"{role_f}_hisobot.pdf", "application/pdf")
                 df_view = pd.DataFrame(recs, columns=["FIO", "Гуруҳ/Кафедра", "Факультет", "Ҳавола"])
+                
+                col_pdf, col_xl = st.columns(2)
+                with col_pdf:
+                    if st.button("📄 PDF форматда юклаш"):
+                        pdf_bytes = generate_pdf(recs, role_f)
+                        st.download_button("PDF сақлаш", pdf_bytes, f"{role_f}_hisobot.pdf", "application/pdf")
+                
+                with col_xl:
+                    # Excel юклаш тугмаси (Янги)
+                    xl_bytes = generate_excel(df_view, role_f)
+                    st.download_button("Excel форматда юклаш", xl_bytes, f"{role_f}_hisobot.xlsx", 
+                                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                
+                st.divider()
                 st.dataframe(df_view, use_container_width=True)
             else:
                 st.info("Маълумот йўқ.")
@@ -143,7 +162,6 @@ if menu == "Administrator":
         with tab3:
             st.subheader("Факультетларни бошқариш")
             
-            # 1. Қўшиш
             with st.expander("➕ Янги факультет қўшиш"):
                 new_f = st.text_input("Номини ёзинг:")
                 if st.button("Сақлаш"):
@@ -153,32 +171,28 @@ if menu == "Administrator":
                         st.success("Қўшилди!")
                         st.rerun()
 
-            # 2. Таҳрирлаш (Сиз сўраган янги қисм)
             with st.expander("✏️ Факультет номини ўзгартириш"):
                 facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
                 old_name = st.selectbox("Қайси факультетни ўзгартирамиз?", facs_list)
                 new_name = st.text_input("Янги номни киритинг:", value=old_name)
                 if st.button("Номни янгилаш"):
                     if new_name and new_name != old_name:
-                        # Факультетлар жадвалида янгилаш
                         c.execute("UPDATE faculties SET name = ? WHERE name = ?", (new_name, old_name))
-                        # Асосий маълумотлар базасидаги (data) ёзувларни ҳам янгилаш
                         c.execute("UPDATE data SET faculty = ? WHERE faculty = ?", (new_name, old_name))
                         conn.commit()
-                        st.success(f"{old_name} -> {new_name} га ўзгарди!")
+                        st.success(f"Янгиланди!")
                         st.rerun()
 
-            # 3. Ўчириш
             with st.expander("🗑 Факультетни ўчириш"):
                 facs_list_del = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
                 del_fac = st.selectbox("Ўчириш учун танланг:", facs_list_del, key="del_box")
                 if st.button("Бутунлай ўчириш"):
                     c.execute("DELETE FROM faculties WHERE name = ?", (del_fac,))
                     conn.commit()
-                    st.warning(f"{del_fac} олиб ташланди.")
+                    st.warning(f"Ўчирилди.")
                     st.rerun()
     else:
-        st.warning("Парол киритилмаган.")
+        st.warning("Парол киритинг.")
 
 elif menu in ["Талаба", "Ўқитувчи ва ходим"]:
     if st.session_state.access:
@@ -195,11 +209,11 @@ elif menu in ["Талаба", "Ўқитувчи ва ходим"]:
                     c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)",
                               (menu, f_fac, f_group, f_fio, f_link))
                     conn.commit()
-                    st.success("Маълумот қабул қилинди!")
+                    st.success("Муваффақиятли сақланди!")
                 else:
-                    st.error("Маълумотларни тўлиқ киритинг!")
+                    st.error("Мажбурий майдонларни тўлдиринг!")
     else:
-        st.error("Тизим ҳозирда ёпиқ.")
+        st.error("Тизим ёпиқ.")
 else:
     st.title("Университет СИ курси мониторинги")
-    st.info("Давом этиш учун чап томондан ролни танланг.")
+    st.info("Ролни танланг.")
