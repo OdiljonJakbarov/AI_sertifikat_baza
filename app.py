@@ -106,11 +106,10 @@ if menu == "Bosh sahifa":
     st.markdown('<p class="big-info">👈 Davom etish uchun rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
 
 elif menu == "Administrator 🛠":
-    # FAQAT BITTA STATIK PAROL BILAN ISHLAYDI
     pwd = st.sidebar.text_input("Administrator parolini kiriting:", type="password")
     if pwd == "Jo12100105+":
         st.header("🛠 Administrator boshqaruv paneli")
-        tab1, tab2, tab3 = st.tabs(["📈 Statistika", "📋 Hisobotlar ва Excel", "⚙ Fakultetlar sozlamalari"])
+        tab1, tab2, tab3 = st.tabs(["📈 Statistika", "📋 Hisobotlar va Excel", "⚙ Fakultetlar sozlamalari"])
         
         with tab1:
             df_stat = pd.read_sql("SELECT faculty FROM data", conn)
@@ -139,7 +138,7 @@ elif menu == "Administrator 🛠":
                     c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (n_f,))
                     conn.commit(); st.rerun()
             if facs_list:
-                with st.expander("✏️ Nomini ўзгартириш"):
+                with st.expander("✏️ Nomini o'zgartirish"):
                     old = st.selectbox("Tanlang:", facs_list)
                     new = st.text_input("Yangi nom:", value=old)
                     if st.button("Yangilash"):
@@ -163,7 +162,11 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
         with st.form("reg_form"):
             fio = st.text_input("To'liq F.I.O:")
             fac = st.selectbox("Fakultetingiz:", facs)
-            grp = st.text_input("Guruh yoki Kafedra:")
+            
+            # АЙНАН СИЗ СЎРАГАН МАТН ШУ ЕРГА ЖОЙЛАШТИРИЛДИ
+            input_label = "O`qituvchilar - kafedra nomini, Bo`limdagilar - bo`lim nomini, Talabalar - guruh nomini to`liq kiriting:"
+            grp = st.text_input(input_label)
+            
             lnk = st.text_input("Sertifikat linki:")
             if st.form_submit_button("✅ Yuborish"):
                 if fio and lnk:
