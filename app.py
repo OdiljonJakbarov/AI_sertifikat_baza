@@ -123,9 +123,12 @@ elif menu == "Administrator 🛠":
             recs = c.fetchall()
             if recs:
                 df_view = pd.DataFrame(recs, columns=["F.I.O", "Guruh/Kafedra", "Fakultet", "Sertifikat"])
+                
+                # МАНА ШУ ЕРДА EXCEL ВА PDF ЮКЛАШ ТУГМАЛАРИ ЖОЙЛАШГАН
                 col1, col2 = st.columns(2)
                 with col1: st.download_button("📥 Excel yuklash", generate_excel(df_view, role_f), f"{role_f}.xlsx")
                 with col2: st.download_button("📄 PDF yuklash", generate_pdf(recs, role_f), f"{role_f}.pdf")
+                
                 st.dataframe(df_view, use_container_width=True)
             else: st.info("Ma'lumot topilmadi.")
 
@@ -163,8 +166,8 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
             fio = st.text_input("To'liq F.I.O:")
             fac = st.selectbox("Fakultetingiz:", facs)
             
-            # АЙНАН СИЗ СЎРАГАН МАТН ШУ ЕРГА ЖОЙЛАШТИРИЛДИ
-            input_label = "O`qituvchilar - kafedra nomini, Bo`limdagilar - bo`lim nomini, Talabalar - guruh nomini to`liq kiriting:"
+            # ЯНГИЛАНГАН МАТН ШУ ЕРДА
+            input_label = "Ustozlar - kafedra nomini, Xodimlar - bolim nomini, Talabalar - guruh nomini kiriting:"
             grp = st.text_input(input_label)
             
             lnk = st.text_input("Sertifikat linki:")
