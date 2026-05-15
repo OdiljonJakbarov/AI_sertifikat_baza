@@ -6,11 +6,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import cm
 import io
-import os
 
 # --- SAHIFA SOZLAMALARI ---
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide", page_icon="🤖")
@@ -62,6 +59,25 @@ def init_db():
             conn.commit()
         except: pass
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
+    
+    # СИЗ СЎРАГАН ФАКУЛЬТЕТЛАР ВА БЎЛИМЛАР РЎЙХАТИ
+    fixed_faculties = [
+        "Muhandislik-axborot texnologiyalari",
+        "Transport",
+        "Biznesni boshqarish",
+        "Iqtisodiyot",
+        "Qurilish",
+        "Texnologiya",
+        "Energetika",
+        "Mexanika",
+        "To‘qimachilik sanoati injineringi",
+        "Bolimlar"
+    ]
+    
+    # Рўйхатни базага доимий сифатинда киритиш
+    for fac in fixed_faculties:
+        c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (fac,))
+        
     conn.commit()
     return conn
 
@@ -103,7 +119,7 @@ if menu == "Bosh sahifa":
     with col1: st.markdown('<div class="card"><h3>🧠 Kurs Mazmuni</h3>Generativ AI va Prompt Engineering sertifikatlari monitoringi.</div>', unsafe_allow_html=True)
     with col2: st.markdown('<div class="card"><h3>📜 Sertifikatlar</h3>Sertifikat havolasini tizimga kiriting va ro\'yxatdan o\'ting.</div>', unsafe_allow_html=True)
     with col3: st.markdown('<div class="card"><h3>⚡ Tezkorlik</h3>Ma\'lumotlar xavfsiz bazada saqlanadi va hisobotlar tayyorlanadi.</div>', unsafe_allow_html=True)
-    st.markdown('<p class="big-info">👈 Davom etish uchun rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="big-info">👈 Davom etish windowsill rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
 
 elif menu == "Administrator 🛠":
     pwd = st.sidebar.text_input("Administrator parolini kiriting:", type="password")
@@ -118,19 +134,31 @@ elif menu == "Administrator 🛠":
             else: st.info("Hozircha statistika yo'q.")
         
         with tab2:
+            st.subheader("📋 Kiritilgan ma'lumotlarni ko'rish va yuklab olish")
             role_f = st.radio("Toifani tanlang:", ["O'qituvchi va xodim", "Talaba"], horizontal=True)
+            
             c.execute("SELECT fio, dept_group, faculty, cert_link FROM data WHERE role=?", (role_f,))
             recs = c.fetchall()
+            
             if recs:
                 df_view = pd.DataFrame(recs, columns=["F.I.O", "Guruh/Kafedra", "Fakultet", "Sertifikat"])
-                
-                # МАНА ШУ ЕРДА EXCEL ВА PDF ЮКЛАШ ТУГМАЛАРИ ЖОЙЛАШГАН
-                col1, col2 = st.columns(2)
-                with col1: st.download_button("📥 Excel yuklash", generate_excel(df_view, role_f), f"{role_f}.xlsx")
-                with col2: st.download_button("📄 PDF yuklash", generate_pdf(recs, role_f), f"{role_f}.pdf")
-                
-                st.dataframe(df_view, use_container_width=True)
-            else: st.info("Ma'lumot topilmadi.")
+            else:
+                df_view = pd.DataFrame(columns=["F.I.O", "Guruh/Kafedra", "Fakultet", "Sertifikat"])
+            
+            col1, col2 = st.columns(2)
+            with col1: 
+                st.download_button(
+                    label="📥 Экрандаги маълумотларни Excel файлда юклаб олиш", 
+                    data=generate_excel(df_view, role_f), 
+                    file_name=f"{role_f}_hisobot.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            with col2: 
+                if recs: st.download_button("📄 PDF файлда юклаб олиш", generate_pdf(recs, role_f), f"{role_f}_hisobot.pdf")
+                else: st.button("📄 PDF (Ma'lumot yo'q)", disabled=True)
+            
+            st.write("### Экрандаги жорий маълумотлар жадвали:")
+            st.dataframe(df_view, use_container_width=True)
 
         with tab3:
             st.subheader("⚙ Fakultetlarni tahrirlash")
@@ -159,17 +187,17 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
     role_name = "Talaba" if "Talaba" in menu else "O'qituvchi va xodim"
     h_text = f"📝 {role_name} sertifikatini yuklash oynasi"
     st.markdown(f"### {h_text}")
+    
+    # Fakultetlarni bazadan o'qib olish (ular doim fixed_faculties tartibida chiqadi)
     facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
+    
     if not facs: st.warning("Fakultetlar qo'shilmagan.")
     else:
         with st.form("reg_form"):
             fio = st.text_input("To'liq F.I.O:")
             fac = st.selectbox("Fakultetingiz:", facs)
-            
-            # ЯНГИЛАНГАН МАТН ШУ ЕРДА
             input_label = "Ustozlar - kafedra nomini, Xodimlar - bolim nomini, Talabalar - guruh nomini kiriting:"
             grp = st.text_input(input_label)
-            
             lnk = st.text_input("Sertifikat linki:")
             if st.form_submit_button("✅ Yuborish"):
                 if fio and lnk:
