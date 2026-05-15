@@ -18,7 +18,6 @@ st.set_page_config(page_title="AI Monitoring Platform", layout="wide", page_icon
 # --- CUSTOM CSS (DIZAYN VA FOUTER) ---
 st.markdown("""
     <style>
-    /* Asosiy fon va shriftlar */
     .main { background-color: #f8f9fa; }
     .stButton>button { 
         width: 100%; 
@@ -31,7 +30,6 @@ st.markdown("""
     }
     .stButton>button:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
     
-    /* Header qismi */
     .header-box {
         padding: 40px;
         background: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
@@ -42,7 +40,6 @@ st.markdown("""
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
     
-    /* Kartochkalar */
     .card {
         padding: 20px;
         background: white;
@@ -53,7 +50,6 @@ st.markdown("""
         min-height: 150px;
     }
     
-    /* FOUTERNI O'RTALASH */
     .footer { 
         position: fixed; 
         bottom: 10px; 
@@ -186,8 +182,15 @@ elif menu == "Administrator 🛠":
                         st.rerun()
 
 elif "Talaba" in menu or "O'qituvchi" in menu:
-    role_name = "Talaba" if "Talaba" in menu else "O'qituvchi va xodim"
-    st.markdown(f"### 📝 {role_name} anketasi")
+    # Сиз сўраган ўзгаришлар айнан шу ерда:
+    if "Talaba" in menu:
+        header_text = "📝 Talaba anketasi sertifikatini yuklash oynasi"
+        role_name = "Talaba"
+    else:
+        header_text = "📝 O'qituvchi va xodim sertifikatini yuklash oynasi"
+        role_name = "O'qituvchi va xodim"
+
+    st.markdown(f"### {header_text}")
     facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
     
     if not facs:
