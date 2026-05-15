@@ -182,9 +182,8 @@ elif menu == "Administrator 🛠":
                         st.rerun()
 
 elif "Talaba" in menu or "O'qituvchi" in menu:
-    # Сиз сўраган ўзгаришлар айнан шу ерда:
     if "Talaba" in menu:
-        header_text = "📝 Talaba anketasi sertifikatini yuklash oynasi"
+        header_text = "📝 Talaba sertifikatini yuklash oynasi"
         role_name = "Talaba"
     else:
         header_text = "📝 O'qituvchi va xodim sertifikatini yuklash oynasi"
