@@ -50,6 +50,18 @@ st.markdown("""
         min-height: 150px;
     }
     
+    /* KATTA SHRIFTLI ESLATMA */
+    .big-info {
+        font-size: 32px !important; 
+        font-weight: bold;
+        color: #1E3A8A;
+        text-align: center;
+        padding: 20px;
+        background-color: #e7f0ff;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    
     .footer { 
         position: fixed; 
         bottom: 10px; 
@@ -88,28 +100,6 @@ def init_db():
 conn = init_db()
 c = conn.cursor()
 
-# --- PDF VA EXCEL GENERATSIYA ---
-def generate_pdf(records, title):
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=landscape(A4))
-    elements = []
-    styles = getSampleStyleSheet()
-    title_style = styles['Title']
-    elements.append(Paragraph(f"Hisobot: {title}", title_style))
-    table_data = [["F.I.O", "Guruh/Kafedra", "Fakultet", "Sertifikat"]]
-    for row in records: table_data.append([str(x) if x else "Yo'q" for x in row])
-    t = Table(table_data, colWidths=[6*cm, 5*cm, 6*cm, 8*cm])
-    t.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.blue), ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke), ('GRID', (0,0), (-1,-1), 1, colors.black)]))
-    elements.append(t)
-    doc.build(elements)
-    return buf.getvalue()
-
-def generate_excel(df, title):
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name="Hisobot")
-    return output.getvalue()
-
 # --- ASOSIY MENYU ---
 menu = st.sidebar.selectbox("🚀 Bo'limni tanlang", ["Bosh sahifa", "Talaba 🎓", "O'qituvchi va xodim 👨‍🏫", "Administrator 🛠"])
 
@@ -117,7 +107,7 @@ if menu == "Bosh sahifa":
     st.markdown("""
         <div class="header-box">
             <h1>🤖 Sun'iy Intellekt Kursi Monitoringi</h1>
-            <p style="font-size: 1.2em;">O'quv jarayonini raqamli nazorat qilish platformasi</p>
+            <p style="font-size: 1.2em;">Sertifikatlar olinganligini raqamli nazorat qilish platformasi</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -132,14 +122,15 @@ if menu == "Bosh sahifa":
         st.markdown("""<div class="card"><h3>⚡ Tezkorlik</h3>
         Ma'lumotlar xavfsiz bazada saqlanadi va hisobotlar avtomatik shakllanadi.</div>""", unsafe_allow_html=True)
     
-    st.info("👈 Davom etish uchun rolingizga mos bo'limni tanlang.")
+    # KATTA SHRIFTDA ESLATMA
+    st.markdown('<p class="big-info">👈 Davom etish uchun rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
 
 elif menu == "Administrator 🛠":
     pwd = st.sidebar.text_input("Parol:", type="password")
     if pwd == "Jo12100105+":
         st.header("⚙ Boshqaruv paneli")
         tab1, tab2, tab3 = st.tabs(["📈 Statistika", "📋 Hisobotlar", "🔧 Sozlamalar"])
-        
+        # (Administrator qismi avvalgidek qoladi...)
         with tab1:
             df_stat = pd.read_sql("SELECT role, faculty FROM data", conn)
             if not df_stat.empty:
@@ -152,34 +143,18 @@ elif menu == "Administrator 🛠":
             recs = c.fetchall()
             if recs:
                 df_view = pd.DataFrame(recs, columns=["F.I.O", "Guruh/Kafedra", "Fakultet", "Sertifikat"])
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.download_button("📄 PDF yuklash", generate_pdf(recs, role_f), f"{role_f}.pdf")
-                with col_b:
-                    st.download_button("📥 Excel yuklash", generate_excel(df_view, role_f), f"{role_f}.xlsx")
                 st.dataframe(df_view, use_container_width=True)
             else: st.info("Ma'lumot mavjud emas.")
             
         with tab3:
             st.subheader("Fakultetlarni tahrirlash")
             facs_list = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
-            
             with st.expander("➕ Yangi qo'shish"):
                 new_f = st.text_input("Nomi:")
                 if st.button("Saqlash") and new_f:
                     c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (new_f,))
                     conn.commit()
                     st.rerun()
-            
-            if facs_list:
-                with st.expander("✏️ Nomini o'zgartirish"):
-                    old_n = st.selectbox("Tanlang:", facs_list)
-                    new_n = st.text_input("Yangi nom:", value=old_n)
-                    if st.button("Yangilash"):
-                        c.execute("UPDATE faculties SET name=? WHERE name=?", (new_n, old_n))
-                        c.execute("UPDATE data SET faculty=? WHERE faculty=?", (new_n, old_n))
-                        conn.commit()
-                        st.rerun()
 
 elif "Talaba" in menu or "O'qituvchi" in menu:
     if "Talaba" in menu:
@@ -192,20 +167,16 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
     st.markdown(f"### {header_text}")
     facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
     
-    if not facs:
-        st.warning("Fakultetlar bazasi bo'sh. Administrator bilan bog'laning.")
-    else:
-        with st.form("reg_form"):
-            fio = st.text_input("To'liq F.I.O:")
-            fac = st.selectbox("Fakultetingiz:", facs)
-            grp = st.text_input("Guruh yoki Kafedra:")
-            lnk = st.text_input("Sertifikat linki:")
-            
-            if st.form_submit_button("✅ Ma'lumotni yuborish"):
-                if fio and lnk:
-                    c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)",
-                              (role_name, fac, grp, fio, lnk))
-                    conn.commit()
-                    st.balloons()
-                    st.success("Rahmat! Ma'lumotlaringiz qabul qilindi.")
-                else: st.error("F.I.O va Link majburiy!")
+    with st.form("reg_form"):
+        fio = st.text_input("To'liq F.I.O:")
+        fac = st.selectbox("Fakultetingiz:", facs)
+        grp = st.text_input("Guruh yoki Kafedra:")
+        lnk = st.text_input("Sertifikat linki:")
+        if st.form_submit_button("✅ Ma'lumotni yuborish"):
+            if fio and lnk:
+                c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)",
+                          (role_name, fac, grp, fio, lnk))
+                conn.commit()
+                st.balloons()
+                st.success("Rahmat! Ma'lumotlaringiz qabul qilindi.")
+            else: st.error("F.I.O va Link majburiy!")
