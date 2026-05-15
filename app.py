@@ -60,7 +60,10 @@ def init_db():
         except: pass
     c.execute('''CREATE TABLE IF NOT EXISTS faculties (name TEXT UNIQUE)''')
     
-    # СИЗ СЎРАГАН ФАКУЛЬТЕТЛАР ВА БЎЛИМЛАР РЎЙХАТИ
+    # 1. ESKI BARCHA FAKULTETLARNI O'CHIRIB TASHLOVCHI TOZALASH BU_YRUG'I
+    c.execute("DELETE FROM faculties") 
+    
+    # 2. FAQAT SIZ AYTGAN YANGI LOTINCHA NOMULAR RO'YXATI
     fixed_faculties = [
         "Muhandislik-axborot texnologiyalari",
         "Transport",
@@ -74,7 +77,7 @@ def init_db():
         "Bolimlar"
     ]
     
-    # Рўйхатни базага доимий сифатинда киритиш
+    # Yangi ro'yxatni bazaga yozish
     for fac in fixed_faculties:
         c.execute("INSERT OR IGNORE INTO faculties (name) VALUES (?)", (fac,))
         
@@ -119,7 +122,7 @@ if menu == "Bosh sahifa":
     with col1: st.markdown('<div class="card"><h3>🧠 Kurs Mazmuni</h3>Generativ AI va Prompt Engineering sertifikatlari monitoringi.</div>', unsafe_allow_html=True)
     with col2: st.markdown('<div class="card"><h3>📜 Sertifikatlar</h3>Sertifikat havolasini tizimga kiriting va ro\'yxatdan o\'ting.</div>', unsafe_allow_html=True)
     with col3: st.markdown('<div class="card"><h3>⚡ Tezkorlik</h3>Ma\'lumotlar xavfsiz bazada saqlanadi va hisobotlar tayyorlanadi.</div>', unsafe_allow_html=True)
-    st.markdown('<p class="big-info">👈 Davom etish windowsill rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="big-info">👈 Davom etish uchun rolingizga mos bo\'limni tanlang.</p>', unsafe_allow_html=True)
 
 elif menu == "Administrator 🛠":
     pwd = st.sidebar.text_input("Administrator parolini kiriting:", type="password")
@@ -157,7 +160,7 @@ elif menu == "Administrator 🛠":
                 if recs: st.download_button("📄 PDF файлда юклаб олиш", generate_pdf(recs, role_f), f"{role_f}_hisobot.pdf")
                 else: st.button("📄 PDF (Ma'lumot yo'q)", disabled=True)
             
-            st.write("### Экрандаги жорий маълумотлар жадвали:")
+            st.write("### Экрандаги жорий маълумотlar жадвали:")
             st.dataframe(df_view, use_container_width=True)
 
         with tab3:
@@ -188,7 +191,6 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
     h_text = f"📝 {role_name} sertifikatini yuklash oynasi"
     st.markdown(f"### {h_text}")
     
-    # Fakultetlarni bazadan o'qib olish (ular doim fixed_faculties tartibida chiqadi)
     facs = [r[0] for r in c.execute("SELECT name FROM faculties").fetchall()]
     
     if not facs: st.warning("Fakultetlar qo'shilmagan.")
