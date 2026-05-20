@@ -126,7 +126,7 @@ if menu == "Bosh sahifa":
 
 elif menu == "Administrator 🛠":
     pwd = st.sidebar.text_input("Administrator parolini kiriting:", type="password")
-    if pwd == "Jo12100105+":
+    if pwd == "Jo12100105+ ":
         st.header("🛠 Administrator boshqaruv paneli")
         tab1, tab2, tab3 = st.tabs(["📈 Statistika", "📋 Hisobotlar va Excel", "⚙ Fakultetlar sozlamalari"])
         
