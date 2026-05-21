@@ -12,7 +12,7 @@ import io
 # ---- SAHIFA SOZLAMALARI ----
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide", page_icon="🤖")
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS ----
 st.markdown("""
     <style>
     .main { background-color: #f8f9fa; }
