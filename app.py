@@ -9,7 +9,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 import io
 
-# --- SAHIFA SOZLAMALARI ---
+# --- SAHIFA SOZLAMALARI ----
 st.set_page_config(page_title="AI Monitoring Platform", layout="wide", page_icon="🤖")
 
 # --- CUSTOM CSS ---
