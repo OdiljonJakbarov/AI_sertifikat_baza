@@ -41,7 +41,7 @@ st.markdown("""
         background: rgba(255,255,255,0.7); padding: 5px 20px; border-radius: 20px;
     }
     </style>
-    <div class="footer">© 2026 Created by Odiljon Jakbarov</div>
+    <div class="footer">© 2026 Hacked by Odiljon Jakbarov</div>
     """, unsafe_allow_html=True)
 
 # --- MA'LUMOTLAR BAZASI ---
