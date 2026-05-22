@@ -208,10 +208,4 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
                     conn.commit(); st.balloons(); st.success("Qabul qilindi!")
                 else: st.error("Maydonlarni to'ldiring!")
 url = "https://www.shutterstock.com/shutterstock/photos/1666725613/display_1500/stock-vector-stop-covid-sign-symbol-vector-illustration-concept-coronavirus-covid-virus-wuhan-from-1666725613.jpg"
-response = requests.get(url)
-if response.status_code == 200:
-    with open("stop_covid.jpg", "wb") as f:
-        f.write(response.content)
-    print("Расм муваффақиятли сақланди!")
-else:
-    print(f"Хатолик юз берди: {response.status_code}")
+
