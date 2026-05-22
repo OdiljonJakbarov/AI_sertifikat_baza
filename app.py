@@ -7,6 +7,7 @@ from reportlab.lib.pagesizes import landscape, A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
+import requests
 import io
 
 # ---- SAHIFA SOZLAMALARI ----
@@ -206,3 +207,10 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
                     c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)", (role_name, fac, grp, fio, lnk))
                     conn.commit(); st.balloons(); st.success("Qabul qilindi!")
                 else: st.error("Maydonlarni to'ldiring!")
+response = requests.get(url)
+if response.status_code == 200:
+    with open("stop_covid.jpg", "wb") as f:
+        f.write(response.content)
+    print("Расм муваффақиятли сақланди!")
+else:
+    print(f"Хатолик юз берди: {response.status_code}")
