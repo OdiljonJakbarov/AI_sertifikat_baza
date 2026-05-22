@@ -110,7 +110,7 @@ def generate_excel(df, title):
     return output.getvalue()
 
 # --- ASOSIY MENYU ---
-menu = st.sidebar.selectbox("🚀 Bo'limni tanlang", ["Bosh sahifa", "Talaba 🎓", "O'qituvchi va xodim 👨‍🏫", "Administrator 🛠"])
+menu = st.sidebar.selectbox("🚀 Bo'limni tanlang", ["Bosh sahifa", "Talaba 🎓", "O'qituvchi va xodim 👨‍🏫"])
 
 if menu == "Bosh sahifa":
     st.markdown("""
