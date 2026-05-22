@@ -207,6 +207,7 @@ elif "Talaba" in menu or "O'qituvchi" in menu:
                     c.execute("INSERT INTO data (role, faculty, dept_group, fio, cert_link) VALUES (?,?,?,?,?)", (role_name, fac, grp, fio, lnk))
                     conn.commit(); st.balloons(); st.success("Qabul qilindi!")
                 else: st.error("Maydonlarni to'ldiring!")
+url = "https://www.shutterstock.com/shutterstock/photos/1666725613/display_1500/stock-vector-stop-covid-sign-symbol-vector-illustration-concept-coronavirus-covid-virus-wuhan-from-1666725613.jpg"
 response = requests.get(url)
 if response.status_code == 200:
     with open("stop_covid.jpg", "wb") as f:
